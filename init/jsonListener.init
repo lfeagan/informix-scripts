@@ -1,0 +1,95 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides: jsonListener
+# Required-Start: $local_fs $remote_fs $network
+# Required-Stop: $local_fs $remote_fs $network
+# Default-Start:  3 5
+# Default-Stop:   0 1 2 6
+# Short-Description: IBM Informix JSON Listener
+# Description: IBM Informix JSON Listener
+### END INIT INFO
+
+DAEMON="/home/lfeagan/JsonListener/jsonListener.sh"
+DAEMON_DIR=`dirname $DAEMON`
+LOGFILE="${DAEMON_DIR}/jsonListener.init.log"
+PIDFILE="${DAEMON_DIR}/jsonListener.pid"
+
+test -x $DAEMON || { echo "$DAEMON not installed";
+	if [ "$1" = "stop" ]; then exit 0;
+	else exit 5; fi; }
+
+# USER and GROUP are the user and group names to run the java process as using startproc
+USER='lfeagan'
+GROUP='users'
+
+test -x $DAEMON || exit 5
+test "$1" != 'status' || SYSTEMD_NO_WRAP=1 # bnc#727445
+
+if [ -f "/etc/rc.d/init.d/functions" ]; then
+	PLATFORM="RHEL"
+	. /etc/rc.d/init.d/functions
+elif [ -f /etc/rc.status ] ; then
+	PLATFORM="SLES"
+	. /etc/rc.status
+	rc_reset
+else
+	echo "Detected unsupported platform"
+	exit 1
+fi
+
+case "$1" in
+	'start')
+		case "${PLATFORM}" in
+		'SLES')
+			echo "Logging to $LOGFILE"
+			startproc -u "${USER}" -g "${GROUP}" -l "${LOGFILE}" -p "${PIDFILE}"  "${DAEMON}" start
+			rc_reset
+			rc_status -v
+		;;
+		'RHEL')
+			daemon --user "${USER}" "${DAEMON}" start
+		;;
+		esac
+	;;
+	
+	'stop')
+		case "${PLATFORM}" in
+		'SLES')
+			startproc -u "${USER}" -g "${GROUP}" "${DAEMON}" stop
+			rc_status -v
+		;;
+		'RHEL')
+			daemon --user "${USER}" "${DAEMON}" stop
+		;;
+		esac
+	;;
+
+	'status')
+		case "${PLATFORM}" in
+		'SLES')
+			startproc -u "${USER}" -g "${GROUP}" "${DAEMON}" status
+			rc_status -v
+		;;
+		'RHEL')
+			daemon --user "${USER}" "${DAEMON}" status
+			status -p "${PIDFILE}" "${DAEMON}"
+		;;
+		esac
+	;;
+	
+	'restart')
+		case "${PLATFORM}" in
+		'SLES')
+			startproc -u "${USER}" -g "${GROUP}" "${DAEMON}" restart
+			rc_status -v
+		;;
+		'RHEL')
+			daemon --user "${USER}" "${DAEMON}" restart
+		;;
+		esac
+	;;
+	*)
+	echo "Usage: $0 { start | stop | restart | status }"
+	;;
+esac
+exit 0
