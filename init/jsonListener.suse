@@ -1,0 +1,52 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides: jsonListener
+# Required-Start: $local_fs $remote_fs $network
+# Required-Stop: $local_fs $remote_fs $network
+# Default-Start:  3 5
+# Default-Stop:   0 1 2 6
+# Short-Description: IBM Informix JSON Listener
+# Description: IBM Informix JSON Listener
+### END INIT INFO
+
+DAEMON="/home/lfeagan/JsonListener/jsonListener.sh"
+DAEMON_DIR=`dirname $DAEMON`
+LOGFILE="${DAEMON_DIR}/jsonListener.init.log"
+PIDFILE="${DAEMON_DIR}/jsonListener.pid"
+
+# USER and GROUP are the user and group names to run the java process as using startproc
+USER='lfeagan'
+GROUP='users'
+
+test -x $DAEMON || exit 5
+test "$1" != 'status' || SYSTEMD_NO_WRAP=1 # bnc#727445
+. /etc/rc.status
+rc_reset
+
+case "$1" in
+	'start')
+	echo "Starting the IBM Informix JSON Listener"
+	echo "Logging to $LOGFILE"
+	startproc -u "${USER}" -g "${GROUP}" -l "${LOGFILE}" -p "${PIDFILE}"  "${DAEMON}" start
+	rc_reset
+	rc_status -v
+	;;
+	
+	'stop')
+	echo "Killing java process ${DAEMON_PID}"
+	startproc -u "${USER}" -g "${GROUP}" "${DAEMON}" stop
+	rc_status -v
+	;;
+
+	'status')
+	startproc -u "${USER}" -g "${GROUP}" "${DAEMON}" status
+	;;
+	
+	'restart')
+	startproc -u "${USER}" -g "${GROUP}" "${DAEMON}" restart
+	;;
+	*)
+	echo "Usage: $0 { start | stop | restart | status }"
+	;;
+esac
+exit 0

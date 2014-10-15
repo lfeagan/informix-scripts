@@ -1,0 +1,52 @@
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides: jsonListener
+# Required-Start: $local_fs $remote_fs $network
+# Required-Stop: $local_fs $remote_fs $network
+# Default-Start:  3 5
+# Default-Stop:   0 1 2 6
+# Short-Description: IBM Informix JSON Listener
+# Description: IBM Informix JSON Listener
+### END INIT INFO
+
+# Source the function library
+if [ -r "/etc/init.d/functions" ]; then
+    . /etc/init.d/functions
+fi
+
+NAME="IBM Informix JSON Listener"
+DAEMON="/home/lfeagan/JsonListener/jsonListener.sh"
+DAEMON_DIR=`dirname $DAEMON`
+#LOGFILE="${DAEMON_DIR}/jsonListener.init.log"
+#PIDFILE="${DAEMON_DIR}/jsonListener.pid"
+
+# USER and GROUP are the user and group names to run the java process as using startproc
+USER='lfeagan'
+
+case "$1" in
+	'start')
+	echo "Logging init output to $LOGFILE"
+	daemon --user "${USER}" "${DAEMON}" start
+	#daemon --user "${USER}" "${DAEMON}" start >"${LOGFILE}" 2>&1
+	#startproc -u "${USER}" -g "${GROUP}" -l "${LOGFILE}" -p "${PIDFILE}"  "${DAEMON}" start
+	rc_reset
+	rc_status -v
+	;;
+	
+	'stop')
+	daemon --user "${USER}" "${DAEMON}" stop
+	rc_status -v
+	;;
+
+	'status')
+	daemon --user "${USER}" "${DAEMON}" status
+	;;
+	
+	'restart')
+	daemon --user "${USER}" "${DAEMON}" restart
+	;;
+	*)
+	echo "Usage: $0 { start | stop | restart | status }"
+	;;
+esac
+exit 0
