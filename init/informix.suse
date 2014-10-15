@@ -1,0 +1,163 @@
+#!/bin/sh
+#
+# SUSE system startup script for Informix daemon
+# Author: Lance Feagan (lfeagan@us.ibm.com)
+#
+# /etc/init.d/informix
+#   and its symbolic link
+# /(usr/)sbin/rcinformix
+#
+### BEGIN INIT INFO
+# Provides:          informix
+# Required-Start:    $network $local_fs $remote_fs
+# Should-Start:      $named $time ypbind smtp dhcp radiusd
+# Required-Stop:     $network $local_fs $remote_fs
+# Should-Stop:       $named $time ypbind smtp dhcp radiusd
+# Default-Start:     3 5
+# Default-Stop:      0 1 2 6
+# Short-Description: Informix daemon
+# Description:       Start Informix oninit process(es)
+### END INIT INFO
+
+# Check for existence of needed config file and read it
+# LWF: I have swapped the ordering of the reading/checking of the
+# configuration and the checking of the binary from the skeleton
+# provided with SuSE.
+INFORMIX_CONFIG=/etc/sysconfig/informix
+test -r $INFORMIX_CONFIG || { echo "$INFORMIX_CONFIG not existing";
+	if [ "$1" = "stop" ]; then exit 0;
+	else exit 6; fi; }
+
+# Read config	
+. $INFORMIX_CONFIG
+
+# Export variables required by Informix processes
+export INFORMIXDIR INFORMIXSERVER ONCONFIG INFORMIXSQLHOSTS
+
+# Check for missing binaries (stale symlinks should not happen)
+# Note: Special treatment of stop for LSB conformance
+ONINIT_BIN="${INFORMIXDIR}/bin/oninit"
+ONMODE_BIN="${INFORMIXDIR}/bin/onmode"
+ONSTAT_BIN="${INFORMIXDIR}/bin/onstat"
+ONCLEAN_BIN="${INFORMIXDIR}/bin/onclean"
+test -x $ONINIT_BIN || { echo "$ONINIT_BIN not installed"; 
+	if [ "$1" = "stop" ]; then exit 0;
+	else exit 5; fi; }
+test -x $ONMODE_BIN || { echo "$ONMODE_BIN not installed"; 
+	if [ "$1" = "stop" ]; then exit 0;
+	else exit 5; fi; }
+test -x $ONSTAT_BIN || { echo "$ONSTAT_BIN not installed"; 
+	if [ "$1" = "stop" ]; then exit 0;
+	else exit 5; fi; }
+test -x $ONCLEAN_BIN || { echo "$ONCLEAN_BIN not installed"; 
+	if [ "$1" = "stop" ]; then exit 0;
+	else exit 5; fi; }
+
+# Source UnitedLinux/SUSE/Novell rc functions
+. /etc/rc.status
+
+# Reset status of this service
+rc_reset
+
+# Return values acc. to LSB for all commands but status:
+# 0	  - success
+# 1       - generic or unspecified error
+# 2       - invalid or excess argument(s)
+# 3       - unimplemented feature (e.g. "reload")
+# 4       - user had insufficient privileges
+# 5       - program is not installed
+# 6       - program is not configured
+# 7       - program is not running
+# 8--199  - reserved (8--99 LSB, 100--149 distrib, 150--199 appl)
+# 
+# Note that starting an already running service, stopping
+# or restarting a not-running service as well as the restart
+# with force-reload (in case signaling is not supported) are
+# considered a success.
+
+case "$1" in
+    start)
+	echo -n "Starting Informix "
+	## Start daemon with startproc(8). If this fails
+	## the return value is set appropriately by startproc.
+	/sbin/startproc -u "${INFORMIX_USER}" -g "${INFORMIX_GROUP}" ${ONINIT_BIN}
+
+	# Remember status and be verbose
+	rc_status -v
+	;;
+    stop)
+	echo -n "Shutting down Informix "
+	$ONMODE_BIN -yuk
+
+	# Remember status and be verbose
+	rc_status -v
+	;;
+    try-restart|condrestart)
+	## Do a restart only if the service was active before.
+	## Note: try-restart is now part of LSB (as of 1.9).
+	## RH has a similar command named condrestart.
+	if test "$1" = "condrestart"; then
+		echo "${attn} Use try-restart ${done}(LSB)${attn} rather than condrestart ${warn}(RH)${norm}"
+	fi
+	$0 status
+	if test $? = 0; then
+		$0 restart
+	else
+		rc_reset	# Not running is not a failure.
+	fi
+	# Remember status and be quiet
+	rc_status
+	;;
+    restart)
+	## Stop the service and regardless of whether it was
+	## running or not, start it again.
+	$0 stop
+	$0 start
+
+	# Remember status and be quiet
+	rc_status
+	;;
+    force-reload)
+	echo -n "Reload service Informix "
+	## Informix does not support signaling for reloading
+	$0 try-restart
+	rc_status
+	;;
+    reload)
+	echo -n "Reload service Informix "
+	## Informix does not support signaling for reloading
+	rc_failed 3
+	rc_status -v
+	;;
+    status)
+	echo -n "Checking for service Informix "
+	## Check status with checkproc(8), if process is running
+	## checkproc will return with exit status 0.
+
+	# Return value is slightly different for the status command:
+	# 0 - service up and running
+	# 1 - service dead, but /var/run/  pid  file exists
+	# 2 - service dead, but /var/lock/ lock file exists
+	# 3 - service not running (unused)
+	# 4 - service status unknown :-(
+	# 5--199 reserved (5--99 LSB, 100--149 distro, 150--199 appl.)
+	
+	# NOTE: checkproc returns LSB compliant status values.
+	/sbin/checkproc $ONINIT_BIN
+	# NOTE: rc_status knows that we called this init script with
+	# "status" option and adapts its messages accordingly.
+	rc_status -v
+	;;
+    probe)
+	## Optional: Probe for the necessity of a reload, print out the
+	## argument to this init script which is required for a reload.
+	## Note: probe is not (yet) part of LSB (as of 1.9)
+
+	test "${INFORMIXDIR}/etc/${ONCONFIG}" -nt "${INFORMIXDIR}/etc/oncfg_${INFORMIXSERVER}.0" && echo reload
+	;;
+    *)
+	echo "Usage: $0 {start|stop|status|try-restart|restart|force-reload|reload|probe}"
+	exit 1
+	;;
+esac
+rc_exit

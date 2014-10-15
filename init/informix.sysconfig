@@ -1,0 +1,52 @@
+## Path:	Applications/Informix
+## Description:	The Informix Database System
+
+## Type:	string
+## Default	"/opt/IBM/informix"
+#
+# Specifies the directory that contains the sub-directories in which the Informix files are installed.
+# See http://www-01.ibm.com/support/knowledgecenter/api/content/SSGU8G_12.1.0/com.ibm.sqlr.doc/ids_sqr_264.htm
+#
+#INFORMIXDIR="/opt/IBM/informix"
+INFORMIXDIR="/opt/tools/Linux/64/x86_64/IDS/12.10_C5_146"
+
+## Type:	string
+## Default	"ids0"
+#
+# Specifies the default database server.
+# See http://www-01.ibm.com/support/knowledgecenter/api/content/SSGU8G_12.1.0/com.ibm.sqlr.doc/ids_sqr_266.htm
+#
+INFORMIXSERVER="ids0"
+
+## Type:	string
+## Default	"onconfig.std"
+#
+# Specifies the name of the file that contains the configuration parameters for the database server.
+# See http://www-01.ibm.com/support/knowledgecenter/api/content/SSGU8G_12.1.0/com.ibm.sqlr.doc/ids_sqr_286.htm
+#
+#ONCONFIG="onconfig.std"
+ONCONFIG="onconfig.ids0"
+
+## Type:	string
+## Default	"/opt/IBM/informix/etc/sqlhosts.std"
+#
+# Specifies where the database server can find connectivity information.
+# See http://www-01.ibm.com/support/knowledgecenter/api/content/SSGU8G_12.1.0/com.ibm.sqlr.doc/ids_sqr_286.htm
+#
+#INFORMIXSQLHOSTS="/opt/IBM/informix/sqlhosts.std"
+INFORMIXSQLHOSTS="/opt/tools/Linux/64/x86_64/IDS/12.10_C5_146/etc/sqlhosts.ids0"
+
+## Type:	string
+## Default	"informix"
+#
+# Specifies the user to run the oninit process as using startproc.
+#
+INFORMIX_USER='informix'
+
+## Type:	string
+## Default	"informix"
+#
+# Specifies the group to run the oninit process as using startproc.
+#
+INFORMIX_GROUP='informix'
+
