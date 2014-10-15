@@ -1,0 +1,17 @@
+Title: IBM Informix JSON Listener README
+Author: Lance Feagan (lfeagan@us.ibm.com)
+
+File(s):
+	jsonListener.init
+		A system init script compatible with SuSE, UnitedLinux, RedHat, and LSB.
+		This file should be placed in '/etc/init.d' and renamed to 'jsonListener'.
+		This file should have mode 755 and be ownership root:root.
+	jsonListener.sysconfig
+		This file contains environment variables that are read by the init script. These variables specify information such as the location of the json listener and the user and group to run the listener as.
+		This file should be placed in '/etc/sysconfig' and renamed to 'jsonListener'.
+		This file should have mode 644 and ownership root:root.
+	jsonListener.sh
+		This file is a shell script that allows the init script to run the IBM Informix JSON Listener as though it were a daemon.
+		This file should be placed in the directory that contains the JSON Listener JARs.
+		This file should have mode 755.
+

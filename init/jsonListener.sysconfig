@@ -1,0 +1,35 @@
+## Path:	Applications/Informix
+## Description:	The Informix JSON Listener System
+
+## Type:	string
+## Default	"/opt/IBM/informix/bin"
+#
+# Specifies the directory that contains the Informix JSON listener.
+#
+LISTENER="/home/lfeagan/JsonListener/jsonListener.sh"
+LISTENER_DIR=`dirname ${LISTENER}`
+
+## Type:	string
+## Default	"nosql.properties"
+#
+# A colon delimited list of listener configuration files.
+#
+#CONFIGURATIONS="${LISTENER_DIR}/nosql.properties"
+CONFIGURATIONS="${LISTENER_DIR}/nosql.properties:${LISTENER_DIR}/restListener.properties"
+
+## Type:	string
+## Default	"informix"
+#
+# Specifies the user to run the listener (java) process as.
+#
+#LISTENER_USER='informix'
+LISTENER_USER='lfeagan'
+
+## Type:	string
+## Default	"informix"
+#
+# Specifies the group to run the listener (java) process as.
+#
+#LISTENER_GROUP='informix'
+LISTENER_GROUP='users'
+

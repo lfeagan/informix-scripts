@@ -9,20 +9,26 @@
 # Description: IBM Informix JSON Listener
 ### END INIT INFO
 
-DAEMON="/home/lfeagan/JsonListener/jsonListener.sh"
-DAEMON_DIR=`dirname $DAEMON`
-LOGFILE="${DAEMON_DIR}/jsonListener.init.log"
-PIDFILE="${DAEMON_DIR}/jsonListener.pid"
+# Check for existence of needed config file and read it
+# LWF: I have swapped the ordering of the reading/checking of the
+# configuration and the checking of the binary from the skeleton
+# provided with SuSE.
+LISTENER_CONFIG=/etc/sysconfig/jsonListener
+test -r $LISTENER_CONFIG || { echo "$LISTENER_CONFIG not existing";
+	if [ "$1" = "stop" ]; then exit 0;
+	else exit 6; fi; }
 
-test -x $DAEMON || { echo "$DAEMON not installed";
+# Read config 
+. $LISTENER_CONFIG
+
+LOGFILE="${LISTENER_DIR}/jsonListener.init.log"
+PIDFILE="${LISTENER_DIR}/jsonListener.pid"
+
+test -x $LISTENER || { echo "$LISTENER not installed";
 	if [ "$1" = "stop" ]; then exit 0;
 	else exit 5; fi; }
 
-# USER and GROUP are the user and group names to run the java process as using startproc
-USER='lfeagan'
-GROUP='users'
-
-test -x $DAEMON || exit 5
+test -x $LISTENER || exit 5
 test "$1" != 'status' || SYSTEMD_NO_WRAP=1 # bnc#727445
 
 if [ -f "/etc/rc.d/init.d/functions" ]; then
@@ -42,12 +48,12 @@ case "$1" in
 		case "${PLATFORM}" in
 		'SLES')
 			echo "Logging to $LOGFILE"
-			startproc -u "${USER}" -g "${GROUP}" -l "${LOGFILE}" -p "${PIDFILE}"  "${DAEMON}" start
+			startproc -u "${LISTENER_USER}" -g "${LISTENER_GROUP}" -l "${LOGFILE}" -p "${PIDFILE}"  "${LISTENER}" start
 			rc_reset
 			rc_status -v
 		;;
 		'RHEL')
-			daemon --user "${USER}" "${DAEMON}" start
+			daemon --user "${LISTENER_USER}" "${LISTENER}" start
 		;;
 		esac
 	;;
@@ -55,11 +61,11 @@ case "$1" in
 	'stop')
 		case "${PLATFORM}" in
 		'SLES')
-			startproc -u "${USER}" -g "${GROUP}" "${DAEMON}" stop
+			startproc -u "${LISTENER_USER}" -g "${LISTENER_GROUP}" "${LISTENER}" stop
 			rc_status -v
 		;;
 		'RHEL')
-			daemon --user "${USER}" "${DAEMON}" stop
+			daemon --user "${LISTENER_USER}" "${LISTENER}" stop
 		;;
 		esac
 	;;
@@ -67,12 +73,12 @@ case "$1" in
 	'status')
 		case "${PLATFORM}" in
 		'SLES')
-			startproc -u "${USER}" -g "${GROUP}" "${DAEMON}" status
+			startproc -u "${LISTENER_USER}" -g "${LISTENER_GROUP}" "${LISTENER}" status
 			rc_status -v
 		;;
 		'RHEL')
-			daemon --user "${USER}" "${DAEMON}" status
-			status -p "${PIDFILE}" "${DAEMON}"
+			daemon --user "${LISTENER_USER}" "${LISTENER}" status
+			status -p "${PIDFILE}" "${LISTENER}"
 		;;
 		esac
 	;;
@@ -80,11 +86,11 @@ case "$1" in
 	'restart')
 		case "${PLATFORM}" in
 		'SLES')
-			startproc -u "${USER}" -g "${GROUP}" "${DAEMON}" restart
+			startproc -u "${LISTENER_USER}" -g "${LISTENER_GROUP}" "${LISTENER}" restart
 			rc_status -v
 		;;
 		'RHEL')
-			daemon --user "${USER}" "${DAEMON}" restart
+			daemon --user "${LISTENER_USER}" "${LISTENER}" restart
 		;;
 		esac
 	;;
