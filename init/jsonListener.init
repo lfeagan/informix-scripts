@@ -1,4 +1,12 @@
 #!/bin/sh
+
+# SUSE system startup script for the IBM Informix JSON listener
+# Author: Lance Feagan (lfeagan@us.ibm.com)
+#
+# /etc/init.d/jsonListener
+#   and its symbolic link
+# /(usr/)sbin/rcjsonListener
+#
 ### BEGIN INIT INFO
 # Provides: jsonListener
 # Required-Start: $local_fs $remote_fs $network
