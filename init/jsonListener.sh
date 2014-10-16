@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# define the debug routine
+# define the debug function
 _DEBUG=false
 DEBUG ()
 {
