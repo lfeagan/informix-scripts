@@ -8,13 +8,14 @@ DEBUG ()
 }
 
 DRYRUN=false
-INSTALL=false
-UNINSTALL=false
+MODE=""
 PRODUCT=""
+FORCE=false
+FIX=false
 
 usage()
 {
-	echo "Usage: install [--install] [--uninstall] [--product <informix|jsonListener>] [--debug] [--dryrun]"
+	echo "Usage: install [--install] [--uninstall] [--product <informix|jsonListener>] [--debug] [--dryrun] [--force]"
 }
 
 while [ "$1" != "" ]; do
@@ -23,15 +24,23 @@ while [ "$1" != "" ]; do
 		;;
 	--dryrun ) DRYRUN=true
 		;;
-	--install ) INSTALL=true
+	--install ) MODE="install"
 		;;
-	--uninstall ) UNINSTALL=true
+	--uninstall ) MODE="uninstall"
+		;;
+	--verify ) MODE="verify"
+		;;
+	--fix ) FIX=true
 		;;
 	--product ) shift
 		PRODUCT=$1
 		;;
+	--force ) FORCE=false
+		;;
+	--help ) usage;
+		exit 0;;
 	* ) usage;
-		exit 1;
+		exit 1;;
 	esac
 	shift
 done
@@ -112,15 +121,100 @@ canWriteToDir()
 	fi
 }
 
+# Arguments
+# $1 -- source path (the path to the file to copy)
+# $2 -- target path (the path to copy the file to)
+# $3 -- the mode to set the file to
+# $4 -- the file ownership (chown)
+# Return Codes
+# 0 -- success
+# 1 -- failure
+copyFileTo()
+{
+	canWriteToDir `dirname ${2}`
+	if [ $? -ne 0 ]; then
+		if [ ! $FORCE ]; then exit 1; fi
+	fi
+	
+	if $DRYRUN; then
+		echo cp "${1}" "${2}"
+		if [ -n $3 ]; then
+			echo chmod $3 "${2}"
+		fi
+		if [ -n $4 ]; then
+			echo chown $4 "${2}"
+		fi
+	else
+		cp "${1}" "${2}"
+		if [ -n $3 ]; then
+			chmod $3 "${2}"
+		fi
+		if [ -n $4 ]; then
+			chown $4 "${2}"
+		fi
+	fi
+	return 0
+}
+
+# Arguments
+# $1 -- the path to the file
+# $2 -- the file mode
+# $3 -- the file user
+# $4 -- the file group
+# Return Codes
+# 0 -- success
+# 1 -- the file does not exist
+# 2 -- the file does not have the correct mode
+# 3 -- the file does not have the correct owner
+# 4 -- the file does not have the correct group
+verifyFile()
+{
+	local count
+	DEBUG echo "verifyFile $1 $2 $3 $4"
+	if [ -f "${1}" ]; then
+		# check the mode
+		count=`find "${1}" -perm "${2}" | wc -l`
+		if [ $count -eq 0 ]; then
+			echo "File ${1} mode is incorrect"
+			if $FIX; then
+				chmod $2 "${1}"
+			else
+				return 2
+			fi
+		fi
+
+		# check the user
+		count=`find "${1}" -user "${3}" | wc -l`
+		if [ $count -eq 0 ]; then
+			echo "File ${1} ownership is incorrect"
+			if $FIX; then
+				chown $3 "${1}"
+			else
+				return 3
+			fi
+		fi
+
+		# check the group
+		count=`find "${1}" -group "${4}" | wc -l`
+		if [ $count -eq 0 ]; then
+			echo "File ${1} group is incorrect"
+			if $FIX; then
+				chgrp $4 "${1}"
+			else
+				return 4
+			fi
+		fi
+
+		echo "Verified file ${1}"
+		return 0
+	else
+		echo "File ${1} does not exist";
+		return 1;
+	fi
+}
+
 installInformix()
 {
-	canWriteToDir "${INIT_DIR}"
-	if [ $? -ne 0 ]; then exit 1; fi
-	canWriteToDir "${SBIN_DIR}"
-	if [ $? -ne 0 ]; then exit 1; fi
-	canWriteToDir "${SYSCONFIG_DIR}"
-	if [ $? -ne 0 ]; then exit 1; fi
-
 	installInitScript "informix" "${INFORMIX_INIT}"
 	installSysconfigScript "informix" "${INFORMIX_SYSCONFIG}"
 
@@ -133,26 +227,12 @@ installInformix()
 
 uninstallInformix()
 {
-	canWriteToDir "${INIT_DIR}"
-	if [ $? -ne 0 ]; then exit 1; fi
-	canWriteToDir "${SBIN_DIR}"
-	if [ $? -ne 0 ]; then exit 1; fi
-	canWriteToDir "${SYSCONFIG_DIR}"
-	if [ $? -ne 0 ]; then exit 1; fi
-
 	uninstallInitScript "informix"
 	uninstallSysconfigScript "informix"
 }
 
 installJsonListener()
 {
-	canWriteToDir "${INIT_DIR}"
-	if [ $? -ne 0 ]; then exit 1; fi
-	canWriteToDir "${SBIN_DIR}"
-	if [ $? -ne 0 ]; then exit 1; fi
-	canWriteToDir "${SYSCONFIG_DIR}"
-	if [ $? -ne 0 ]; then exit 1; fi
-
 	installInitScript "jsonListener" "${LISTENER_INIT}"
 	installSysconfigScript "jsonListener" "${LISTENER_SYSCONFIG}"
 
@@ -165,13 +245,6 @@ installJsonListener()
 
 uninstallJsonListener()
 {
-	canWriteToDir "${INIT_DIR}"
-	if [ $? -ne 0 ]; then exit 1; fi
-	canWriteToDir "${SBIN_DIR}"
-	if [ $? -ne 0 ]; then exit 1; fi
-	canWriteToDir "${SYSCONFIG_DIR}"
-	if [ $? -ne 0 ]; then exit 1; fi
-
 	uninstallInitScript "jsonListener"
 	uninstallSysconfigScript "jsonListener"
 }
@@ -179,19 +252,28 @@ uninstallJsonListener()
 # Install init script
 # $1 -- the base name to be used when copied
 # $2 -- the path to the init script to be copied
+# Return Codes
+# 0 -- success
+# 1 -- error
 installInitScript()
 {
-	DEBUG echo cp "${2}" "${INIT_DIR}/${1}"
-	$DRYRUN || cp "${2}" "${INIT_DIR}/${1}"
-	DEBUG echo chmod 755 "${INIT_DIR}/${1}"
-	$DRYRUN || chmod 755 "${INIT_DIR}/${1}"
-	DEBUG echo chown root:root "${INIT_DIR}/${1}"
-	$DRYRUN || chown root:root "${INIT_DIR}/${1}"
+	copyFileTo "${2}" "${INIT_DIR}/${1}" 755 "root:root"
 	if [ "${PLATFORM}" == 'SLES' ]; then
-		DEBUG echo ln -s "${INIT_DIR}/${1}" "/sbin/rc${1}"
-		$DRYRUN || ln -s "${INIT_DIR}/${1}" "/sbin/rc${1}"
+		DEBUG echo ln -s "${INIT_DIR}/${1}" "${SBIN_DIR}/rc${1}"
+		$DRYRUN || ln -s "${INIT_DIR}/${1}" "${SBIN_DIR}/rc${1}"
 	fi
+	return 0
 }
+
+# Verify init script
+# Arguments
+# $1 -- the base name of the init script
+verifyInitScript()
+{
+	verifyFile "${INIT_DIR}/${1}" 755 "root" "root"
+	verifyFile "${SYSCONFIG_DIR}/${1}" 644 "root" "root"
+}
+
 
 # $1 -- the base name of the init script
 uninstallInitScript()
@@ -209,12 +291,7 @@ uninstallInitScript()
 # $1 -- the path to the sysconfig script to be copied
 installSysconfigScript()
 {
-	DEBUG echo cp "${2}" "${SYSCONFIG_DIR}/${1}"
-	$DRYRUN || cp "${2}" "${SYSCONFIG_DIR}/${1}"
-	DEBUG echo chmod 644 "${SYSCONFIG_DIR}/${1}"
-	$DRYRUN || chmod 644 "${SYSCONFIG_DIR}/${1}"
-	DEBUG echo chown root:root "${SYSCONFIG_DIR}/${1}"
- 	$DRYRUN || chown root:root "${SYSCONFIG_DIR}/${1}"
+	copyFileTo "${2}" "${SYSCONFIG_DIR}/${1}" 644 "root:root"
 }
 
 # Uninstall sysconfig script
@@ -225,21 +302,32 @@ uninstallSysconfigScript()
 	$DRYRUN || rm "${SYSCONFIG_DIR}/${1}"
 }
 
-if $INSTALL; then
+case "${MODE}" in
+install )
 	case "${PRODUCT}" in
 	informix ) installInformix;;
 	jsonListener ) installJsonListener;;
 	* ) echo "Unsupport product ${PRODUCT}"; exit 1;;
 	esac
-elif $UNINSTALL; then
+	;;
+uninstall )
 	case "${PRODUCT}" in
 	informix ) uninstallInformix;;
 	jsonListener ) uninstallJsonListener;;
 	* ) echo "Unsupport product ${PRODUCT}"; exit 1;;
 	esac
-else
-	echo "Must specify --install or --uninstall";
+	;;
+verify )
+	case "${PRODUCT}" in
+	informix ) verifyInitScript "informix";;
+	jsonListener ) verifyInitScript "jsonListener";;
+	* ) echo "Unsupport product ${PRODUCT}"; exit 1;;
+	esac
+	;;
+* )
+	echo "Must specify --install, --uninstall, or --verify";
 	usage
 	exit 1;
-fi
+	;;
+esac
 
