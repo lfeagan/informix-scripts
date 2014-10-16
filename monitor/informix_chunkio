@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# chkio.sql - displays chunk IO status
+
+dbaccess sysmaster <<!
+select
+	name[1,10] dbspace,     -- truncated to fit 80 char screen line
+	chknum,
+	"Primary" chktype,
+	reads,
+	writes,
+	pagesread,
+	pageswritten
+from    syschktab c, sysdbstab d
+where   c.dbsnum = d.dbsnum
+union all
+	select
+	name[1,10]      dbspace,
+	chknum,
+	"Mirror"    chktype,
+	reads,
+	writes,
+	pagesread,
+	pageswritten
+from    sysmchktab c, sysdbstab d
+where   c.dbsnum = d.dbsnum
+order by 1,2,3;
+!

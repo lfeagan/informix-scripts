@@ -1,0 +1,42 @@
+#!/bin/bash
+
+PROGNAME="ifxSetLocale"
+
+if [ $# -lt 1 ]; then
+	echo "Usage: source $PROGNAME <db>"
+	return
+fi
+
+unset DB_LOCALE
+unset CLIENT_LOCALE
+
+DB_LOCALE=`dbaccess sysmaster - 2>/dev/null <<!
+SELECT 'locale='||trim(both from dbs_collate) as dbLocale FROM SYSDBSLOCALE WHERE dbs_dbsname = "$1"
+!
+`
+DB_LOCALE=`echo $DB_LOCALE | cut -d'=' -f2`
+
+if [ -z "$DB_LOCALE" -o "$DB_LOCALE" == "dblocale" ]; then
+	echo "Unable to determine locale for database $1"
+	return
+fi
+
+#DB_LOCALE="en_US.57372"
+#DB_LOCALE="en_US.819"
+#DB_LOCALE="en_US.utf8"
+
+CLIENT_LOCALE=`echo ${DB_LOCALE} | cut -d'.' -f1`
+CLIENT_LOCALE="${CLIENT_LOCALE}.utf8"
+
+#if [ "${0/$PROGNAME}" = $0 ]; then
+if case ${0} in *"${PROGNAME}"*) true;; *) false;; esac; then
+	echo "export DB_LOCALE=$DB_LOCALE"
+	echo "export CLIENT_LOCALE=$CLIENT_LOCALE"
+else
+	echo "DB_LOCALE=$DB_LOCALE"
+	export DB_LOCALE
+	echo "CLIENT_LOCALE=$CLIENT_LOCALE"
+	export CLIENT_LOCALE
+fi
+
+

@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# chkiosum.sql - calculates percent of IO by chunk
+dbaccess sysmaster <<!
+-- Collect chunk IO stats into temp table A
+select
+        name dbspace,
+        chknum,
+        "Primary" chktype,
+        reads,
+        writes,
+        pagesread,
+        pageswritten
+from    syschktab c, sysdbstab d
+where   c.dbsnum = d.dbsnum
+union all
+select
+        name[1,10]      dbspace,
+        chknum,
+        "Mirror"    chktype,
+        reads,
+        writes,
+        pagesread,
+        pageswritten
+from    sysmchktab c, sysdbstab d
+where   c.dbsnum = d.dbsnum
+into temp A;
+
+-- Collect total IO stats into temp table B
+select
+        sum(reads) total_reads,
+        sum(writes) total_writes,
+        sum(pagesread) total_pgreads,
+        sum(pageswritten) total_pgwrites
+from A
+into temp B;
+
+-- Report showing each chunks percent of total IO
+select
+        dbspace,
+        chknum,
+        chktype,
+        reads,
+        writes,
+        pagesread,
+        pageswritten,
+        round((reads/total_reads) *100, 2) percent_reads,
+        round((writes/total_writes) *100, 2) percent_writes,
+        round((pagesread/total_pgreads) *100, 2) percent_pg_reads,
+        round((pageswritten/total_pgwrites) *100, 2) percent_pg_writes
+from    A, B
+order by 11;-- order by percent page writes
+!

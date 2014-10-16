@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# tabprof.sql
+
+dbaccess sysmaster <<!
+select
+	dbsname,
+	tabname,
+	isreads,
+	bufreads,
+	pagreads
+	-- uncomment the following to show writes
+	-- iswrites,
+	-- bufwrites,
+	-- pagwrites
+	-- uncomment the following to show locks
+	-- lockreqs,
+	-- lockwts,
+	-- deadlks
+from sysptprof
+order by isreads desc; -- change this sort to whatever you need to monitor.
+!

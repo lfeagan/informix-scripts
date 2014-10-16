@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# tablayout.sql - Show layout of tables and extents
+
+dbaccess sysmaster <<!
+select dbinfo( "DBSPACE" , pe_partnum ) dbspace,
+	dbsname[1,10],
+	tabname,
+	pe_offset start, -- was pe_phys in older versions
+	pe_size size
+from    sysptnext, outer systabnames
+where   pe_partnum = partnum
+order by dbspace, start;
+!

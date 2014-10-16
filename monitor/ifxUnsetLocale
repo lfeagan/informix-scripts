@@ -1,0 +1,4 @@
+#!/bin/bash
+
+unset CLIENT_LOCALE
+unset DB_LOCALE

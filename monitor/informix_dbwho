@@ -1,0 +1,14 @@
+#!/bin/bash
+
+dbaccess sysmaster <<!
+SELECT
+	sysdatabases.name database,
+	syssessions.username,
+	syssessions.hostname,
+	syslocks.owner sid
+FROM syslocks, sysdatabases, outer syssessions
+WHERE syslocks.tabname = "sysdatabases" -- Find lock on sysdatabases
+	AND syslocks.rowidlk = sysdatabases.rowid -- Join rowid to database
+	AND syslocks.owner = syssessions.sid -- Session ID to get user info
+ORDER BY 1;
+!

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# dblist.sql - List all databases, owner and logging status
+
+dbaccess sysmaster <<!
+select
+	dbinfo("DBSPACE",partnum) dbspace,
+	name database,
+	owner,
+	is_logging,
+	is_buff_log
+from sysdatabases
+order by dbspace, name;
+!

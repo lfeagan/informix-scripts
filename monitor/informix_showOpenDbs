@@ -1,0 +1,60 @@
+#!/bin/bash
+
+DEBUG () 
+{ 
+	[ "$_DEBUG" == "on" ] && "$@" || :
+}
+
+#orderby="username"
+orderby="odb_sessionid"
+#orderby="odb_dbname"
+#orderby="result"
+
+if [ $# -eq 0 ]; then
+	delay=0;
+	count=1;
+elif [ $# -eq 1 ]; then
+	delay=$1
+	count=-1;
+elif [ $# -eq 2 ]; then
+	delay=$1
+	count=$2
+fi
+
+# Test that delay is an integer
+if [[ $delay =~ ^-?[0-9]+$ ]]; then
+	DEBUG echo "delay=$delay"
+	if [ $delay -lt 0 ]; then
+		echo "delay must be greater than or equal to zero"
+		exit 1;
+	fi
+else
+	echo "delay of '$delay' is not an integer"
+	exit 2;
+fi
+
+# Test that count is an integer
+if [[ $count =~ ^-?[0-9]+$ ]]; then
+	DEBUG echo "count=$count"
+	if [ $count -lt -1 ]; then
+		echo "count must be greater than or equal to zero"
+		exit 1;
+	fi
+else
+	echo "count of '$count' is not an integer"
+	exit 2;
+fi
+
+while true; do
+	#echo "count=$count"
+	echo "username   sid   database"
+#echo "SELECT username[1,10] || ' ' || (odb_sessionid::char(5)) || ' ' || odb_dbname as result from syssessions, sysopendb where syssessions.sid = sysopendb.odb_sessionid ORDER BY username;" | dbaccess sysmaster 2>/dev/null | grep result | cut -b 9- | sort -b -k1,1 -k2,2
+	echo "SELECT username[1,10] || ' ' || (odb_sessionid::char(5)) || ' ' || odb_dbname as result from syssessions, sysopendb where syssessions.sid = sysopendb.odb_sessionid ORDER BY $orderby, odb_sessionid;" | dbaccess sysmaster 2>/dev/null | grep result | cut -b 9-
+	let count=$count-1
+	if [[ $count -eq 0 ]]; then
+		break;
+	else
+		sleep $delay
+		echo ""
+	fi
+done

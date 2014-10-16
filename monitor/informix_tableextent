@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# tabextent.sql - List tables, number of extents and size of table.
+
+dbaccess sysmaster <<!
+select  dbsname,
+	tabname,
+	count(*) num_of_extents,
+	sum( pe_size ) total_size
+from systabnames, sysptnext
+where partnum = pe_partnum
+group by 1, 2 
+order by 3 desc, 4 desc;
+!
