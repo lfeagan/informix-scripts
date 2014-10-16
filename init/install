@@ -10,7 +10,12 @@ DEBUG ()
 DRYRUN=false
 INSTALL=false
 UNINSTALL=false
-PRODUCT="informix"
+PRODUCT=""
+
+usage()
+{
+	echo "Usage: install [--install] [--uninstall] [--product <informix|jsonListener>] [--debug] [--dryrun]"
+}
 
 while [ "$1" != "" ]; do
 	case $1 in
@@ -25,11 +30,22 @@ while [ "$1" != "" ]; do
 	--product ) shift
 		PRODUCT=$1
 		;;
-	* ) echo "Usage: install [--install] [--uninstall] [--product <informix|jsonListener>] [--debug] [--dryrun]"
+	* ) usage;
 		exit 1;
 	esac
 	shift
 done
+
+if [ -z "$PRODUCT" ]; then
+	echo -n "Enter the name of the product to install: "
+	read response
+	if [ -n "$response" ]; then
+		PRODUCT="$response"
+	else
+		echo "No product specified. Exiting"
+		exit 0
+	fi
+fi
 
 if $_DEBUG; then echo "debug mode enabled"; fi
 if $DRYRUN; then echo "dry run enabled"; fi
@@ -223,6 +239,7 @@ elif $UNINSTALL; then
 	esac
 else
 	echo "Must specify --install or --uninstall";
+	usage
 	exit 1;
 fi
 
